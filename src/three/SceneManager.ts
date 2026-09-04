@@ -71,6 +71,10 @@ export class SceneManager {
   private resizeObserver: ResizeObserver | null = null
   private rafId = 0
   private wireframe = false
+  /** Extra per-frame callbacks run before render — e.g. the Presentation section's eased
+   * camera-snap animation (src/presentation/cameraSnap.ts) or its orbit-cube gizmo's live
+   * quaternion sync. Nothing in the editor itself uses this. */
+  private readonly tickCallbacks = new Set<() => void>()
 
   constructor() {
     this.scene.background = new THREE.Color(0x2b2d33)
@@ -173,7 +177,14 @@ export class SceneManager {
   private loop = () => {
     this.rafId = requestAnimationFrame(this.loop)
     this.controls.update()
+    for (const cb of this.tickCallbacks) cb()
     this.renderer.render(this.scene, this.camera)
+  }
+
+  /** Registers a per-frame callback run just before render; returns an unsubscribe function. */
+  onTick(cb: () => void): () => void {
+    this.tickCallbacks.add(cb)
+    return () => this.tickCallbacks.delete(cb)
   }
 
   setProjection(mode: ProjectionMode) {

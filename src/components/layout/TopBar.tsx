@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { useProjectStore } from '../../store/useProjectStore'
+import { usePublishStore } from '../../store/usePublishStore'
 import { exportGlb, downloadBlob } from '../../three/exportGlb'
 import { validateGlb, type GlbValidationReport } from '../../three/reimportValidate'
 import { downloadProductInfoCsv } from '../../utils/exportProductInfo'
 import { Icon } from '../common/Icon'
 import { Button } from '../common/Button'
+import { ConfirmDialog } from '../common/ConfirmDialog'
+import { PromptDialog } from '../common/PromptDialog'
 import { ExportReportModal } from '../common/ExportReportModal'
 
 export function TopBar() {
@@ -13,6 +16,8 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [report, setReport] = useState<{ report: GlbValidationReport; fileName: string } | null>(null)
+  const [confirmingPublish, setConfirmingPublish] = useState(false)
+  const [namingPublish, setNamingPublish] = useState(false)
 
   const importFbxFile = useAppStore((s) => s.importFbxFile)
   const importing = useAppStore((s) => s.importing)
@@ -32,6 +37,9 @@ export function TopBar() {
   const setCurrentProjectName = useProjectStore((s) => s.setCurrentProjectName)
   const saveCurrentAsProject = useProjectStore((s) => s.saveCurrentAsProject)
 
+  const publish = usePublishStore((s) => s.publish)
+  const publishing = usePublishStore((s) => s.publishing)
+
   function handleFbxChosen(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) void importFbxFile(file)
@@ -42,6 +50,17 @@ export function TopBar() {
     const baseName = (fbxFileName ?? 'model').replace(/\.fbx$/i, '')
     downloadProductInfoCsv(productInfo, objectMeta, `${baseName}-product-info.csv`)
     setStatusMessage(`Exported product information for ${Object.keys(productInfo).length} object(s).`)
+  }
+
+  async function handlePublish(label: string) {
+    setNamingPublish(false)
+    try {
+      const saved = await publish(label)
+      setStatusMessage(`Published "${saved.label}" — visible in the Presentation section.`)
+      useAppStore.getState().setActiveRightPanel('published')
+    } catch (err) {
+      setStatusMessage(`Publish failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   async function handleExport() {
@@ -103,6 +122,16 @@ export function TopBar() {
               <div className="my-1 h-px bg-[var(--panel-border)]" />
               <MenuItem icon="save" label="Save Project" onClick={() => void saveCurrentAsProject()} />
               <MenuItem icon="folder" label="Open Project…" onClick={() => useAppStore.getState().setActiveRightPanel('objectTree')} />
+              <div className="my-1 h-px bg-[var(--panel-border)]" />
+              <MenuItem
+                icon="flag"
+                label="Publish…"
+                disabled={!modelRoot}
+                onClick={() => {
+                  setMenuOpen(false)
+                  setConfirmingPublish(true)
+                }}
+              />
             </div>
           </>
         )}
@@ -147,8 +176,39 @@ export function TopBar() {
       >
         {exporting ? 'EXPORTING…' : 'EXPORT GLB'}
       </Button>
+      <Button
+        variant="secondary"
+        icon={<Icon name="flag" size={14} />}
+        onClick={() => setConfirmingPublish(true)}
+        disabled={!modelRoot || publishing}
+      >
+        {publishing ? 'PUBLISHING…' : 'PUBLISH'}
+      </Button>
 
       {report && <ExportReportModal report={report.report} fileName={report.fileName} onClose={() => setReport(null)} />}
+
+      {confirmingPublish && (
+        <ConfirmDialog
+          title="Publish this model?"
+          message="This will make the current model visible to anyone with access to the Presentation section. Continue?"
+          confirmLabel="PUBLISH"
+          onCancel={() => setConfirmingPublish(false)}
+          onConfirm={() => {
+            setConfirmingPublish(false)
+            setNamingPublish(true)
+          }}
+        />
+      )}
+      {namingPublish && (
+        <PromptDialog
+          title="Name this published snapshot"
+          label="Clients will see this name in the Presentation section."
+          initialValue={fbxFileName ? fbxFileName.replace(/\.fbx$/i, '') : ''}
+          confirmLabel="PUBLISH"
+          onCancel={() => setNamingPublish(false)}
+          onConfirm={(label) => void handlePublish(label)}
+        />
+      )}
     </div>
   )
 }

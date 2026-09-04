@@ -15,6 +15,14 @@ dist-ssr
 # Local QA fixtures (third-party test FBX/PNGs) — not part of the app
 test-assets/
 
+# Local filesystem fallback for the published-snapshot storage backend (api/_lib/storage.ts) —
+# used only when BLOB_READ_WRITE_TOKEN isn't set (plain local dev). Real deployments use Vercel
+# Blob and never write here.
+.data/
+
+# Vercel CLI project link + pulled env vars
+.vercel
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

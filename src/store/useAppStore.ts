@@ -18,7 +18,7 @@ import { useMaterialLibraryStore } from './useMaterialLibraryStore'
 import { makeId } from '../utils/id'
 
 export type ActiveTool = 'select' | 'orbit' | 'pan' | 'zoom' | 'measure' | 'faceSelect'
-export type RightPanelKey = 'objectTree' | 'materials' | 'materialEditor' | 'edgeSettings' | 'sun' | null
+export type RightPanelKey = 'objectTree' | 'materials' | 'materialEditor' | 'edgeSettings' | 'sun' | 'published' | null
 
 /** componentId -> canonical face index -> assigned custom material id. Serializable as-is for
  * project save/restore. */
