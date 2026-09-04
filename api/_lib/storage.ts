@@ -37,6 +37,9 @@ export interface SnapshotStorage {
   getMeta(id: string): Promise<SnapshotMeta | null>
   getGlb(id: string): Promise<Uint8Array | null>
   put(id: string, glb: Uint8Array, meta: Omit<SnapshotMeta, 'sizeBytes'>): Promise<SnapshotMeta>
+  /** Records metadata for a GLB that was already uploaded directly to storage from the browser
+   * (see `api/publish/upload-token.ts`) — used for models too large for a Function's request body. */
+  putFromUrl(id: string, glbUrl: string, sizeBytes: number, meta: Omit<SnapshotMeta, 'sizeBytes'>): Promise<SnapshotMeta>
   remove(id: string): Promise<void>
 }
 
@@ -119,6 +122,15 @@ class BlobStorage implements SnapshotStorage {
     if (found) await del(found.glbUrl)
     await this.writeIndex(entries.filter((e) => e.id !== id))
   }
+
+  async putFromUrl(id: string, glbUrl: string, sizeBytes: number, meta: Omit<SnapshotMeta, 'sizeBytes'>): Promise<SnapshotMeta> {
+    const fullMeta: SnapshotMeta = { ...meta, sizeBytes }
+    const entries = await this.readIndex()
+    const next = entries.filter((e) => e.id !== id)
+    next.push({ ...fullMeta, glbUrl })
+    await this.writeIndex(next)
+    return fullMeta
+  }
 }
 
 // ---- Local filesystem backend (dev/testing without Blob configured) -----
@@ -184,6 +196,12 @@ class LocalStorage implements SnapshotStorage {
     await fs.rm(path.join(dir, `${id}.glb`), { force: true })
     const entries = await this.readIndex()
     await this.writeIndex(entries.filter((e) => e.id !== id))
+  }
+
+  async putFromUrl(id: string, glbUrl: string, _sizeBytes: number, meta: Omit<SnapshotMeta, 'sizeBytes'>): Promise<SnapshotMeta> {
+    const r = await fetch(glbUrl)
+    if (!r.ok) throw new Error(`Failed to fetch uploaded blob (${r.status})`)
+    return this.put(id, new Uint8Array(await r.arrayBuffer()), meta)
   }
 }
 

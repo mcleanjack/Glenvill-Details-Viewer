@@ -43,16 +43,51 @@ async function buildSnapshotBlob() {
   return { blob, buildStages, componentsWithProductInfo, modelName }
 }
 
-async function postSnapshot(payload: { id?: string; label: string }): Promise<PublishedSnapshotMeta> {
-  const { blob, buildStages, componentsWithProductInfo, modelName } = await buildSnapshotBlob()
-  const meta = { ...payload, buildStages, componentsWithProductInfo, modelName }
+/** Posts a GLB straight through the Function body (works for local dev without Blob configured,
+ * and for anything small enough to fit under Vercel's ~4.5MB request body cap). */
+async function legacyPostSnapshot(payload: { id?: string; label: string }, meta: object, blob: Blob): Promise<PublishedSnapshotMeta> {
   const res = await fetch('/api/publish', {
     method: 'POST',
     headers: {
       'Content-Type': 'model/gltf-binary',
-      'X-Snapshot-Meta': encodeURIComponent(JSON.stringify(meta)),
+      'X-Snapshot-Meta': encodeURIComponent(JSON.stringify({ ...payload, ...meta })),
     },
     body: blob,
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}) as { error?: string })
+    throw new Error(body.error || `Publish failed (${res.status})`)
+  }
+  return (await res.json()) as PublishedSnapshotMeta
+}
+
+async function postSnapshot(payload: { id?: string; label: string }): Promise<PublishedSnapshotMeta> {
+  const { blob, buildStages, componentsWithProductInfo, modelName } = await buildSnapshotBlob()
+  const meta = { buildStages, componentsWithProductInfo, modelName }
+  const id = payload.id ?? crypto.randomUUID()
+
+  // A real building model's GLB routinely exceeds Vercel's ~4.5MB Function body cap, so upload it
+  // straight to Blob storage from the browser instead of through the API route. Checking
+  // blobConfigured up front (rather than trying upload() and catching failure) is deliberate:
+  // @vercel/blob's upload() discards the real error body on a failed token request, so a caught
+  // failure there can't be distinguished from an actual auth/network error.
+  const statusRes = await fetch('/api/publish/upload-token')
+  const { blobConfigured } = statusRes.ok ? ((await statusRes.json()) as { blobConfigured: boolean }) : { blobConfigured: false }
+
+  if (!blobConfigured) {
+    return legacyPostSnapshot(payload, meta, blob)
+  }
+
+  const { upload } = await import('@vercel/blob/client')
+  const uploaded = await upload(`snapshots/${id}/model.glb`, blob, {
+    access: 'public',
+    handleUploadUrl: '/api/publish/upload-token',
+    contentType: 'model/gltf-binary',
+  })
+  const res = await fetch('/api/publish', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...payload, ...meta, id, glbUrl: uploaded.url, sizeBytes: blob.size }),
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}) as { error?: string })
