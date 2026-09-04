@@ -15,6 +15,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const code = typeof req.body?.code === 'string' ? req.body.code : ''
+  console.log('[presentation-login debug]', {
+    submittedLength: code.length,
+    envLength: accessCode.length,
+    exactMatch: code === accessCode,
+    trimmedMatch: code.trim() === accessCode.trim(),
+  })
   if (!code || !(await timingSafeEqual(code, accessCode))) {
     res.status(401).json({ error: 'Incorrect access code.' })
     return
