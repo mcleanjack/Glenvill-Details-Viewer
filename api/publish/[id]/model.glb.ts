@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { COOKIE_NAMES, parseCookies, verifySessionToken } from '../../_lib/session'
-import { getStorage } from '../../_lib/storage'
+import { COOKIE_NAMES, parseCookies, verifySessionToken } from '../../_lib/session.js'
+import { getStorage } from '../../_lib/storage.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {

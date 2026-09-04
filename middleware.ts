@@ -13,7 +13,7 @@
  * fetch() failure into a confusing redirect-to-an-HTML-page response.
  */
 
-import { COOKIE_NAMES, parseCookies, verifySessionToken } from './api/_lib/session'
+import { COOKIE_NAMES, parseCookies, verifySessionToken } from './api/_lib/session.js'
 
 export const config = {
   // Skip the SPA's own built assets — they must load regardless of which (or whether any)

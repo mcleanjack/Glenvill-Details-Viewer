@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { COOKIE_NAMES, createSessionToken, isLocalHost, serializeCookie, timingSafeEqual } from '../_lib/session'
+import { COOKIE_NAMES, createSessionToken, isLocalHost, serializeCookie, timingSafeEqual } from '../_lib/session.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -15,6 +15,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const password = typeof req.body?.password === 'string' ? req.body.password : ''
+  console.log('[owner-login debug]', {
+    submittedLength: password.length,
+    envLength: ownerPassword.length,
+    exactMatch: password === ownerPassword,
+    trimmedMatch: password.trim() === ownerPassword.trim(),
+  })
   if (!password || !(await timingSafeEqual(password, ownerPassword))) {
     res.status(401).json({ error: 'Incorrect password.' })
     return

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { COOKIE_NAMES, isLocalHost, serializeCookie, type SessionKind } from '../_lib/session'
+import { COOKIE_NAMES, isLocalHost, serializeCookie, type SessionKind } from '../_lib/session.js'
 
 /** Logs out of either area — POST { kind: 'owner' | 'presentation' }. Only ever clears the one
  * cookie asked for, so logging out of the Presentation section can never touch an owner session

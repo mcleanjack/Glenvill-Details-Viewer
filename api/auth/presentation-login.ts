@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { COOKIE_NAMES, createSessionToken, isLocalHost, serializeCookie, timingSafeEqual } from '../_lib/session'
+import { COOKIE_NAMES, createSessionToken, isLocalHost, serializeCookie, timingSafeEqual } from '../_lib/session.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

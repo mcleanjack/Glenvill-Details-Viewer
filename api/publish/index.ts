@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { randomUUID } from 'node:crypto'
-import { COOKIE_NAMES, parseCookies, verifySessionToken } from '../_lib/session'
-import { getStorage, type BuildStageSummary } from '../_lib/storage'
+import { COOKIE_NAMES, parseCookies, verifySessionToken } from '../_lib/session.js'
+import { getStorage, type BuildStageSummary } from '../_lib/storage.js'
 
 export const config = {
   api: {
