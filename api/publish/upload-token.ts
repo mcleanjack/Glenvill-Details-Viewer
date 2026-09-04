@@ -37,7 +37,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return
   }
 
-  if (!(await isOwner(req))) {
+  const owner = await isOwner(req)
+  console.log('[upload-token debug]', {
+    owner,
+    bodyType: (req.body as HandleUploadBody | undefined)?.type,
+    pathname: (req.body as { payload?: { pathname?: string } } | undefined)?.payload?.pathname,
+  })
+
+  if (!owner) {
     res.status(403).json({ error: 'Owner session required' })
     return
   }
@@ -60,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
     res.status(200).json(jsonResponse)
   } catch (err) {
+    console.log('[upload-token debug] handleUpload threw', err instanceof Error ? err.stack : err)
     res.status(400).json({ error: err instanceof Error ? err.message : 'Upload token request failed' })
   }
 }
